@@ -5,7 +5,7 @@
 ## 1. 依存関係のインストール
 
 ```bash
-cd c:/Users/yoshd/Documents/develop/ai-coding-sandbox/GitHub-Copilot-Chat
+cd <local dir.>/ai-coding-sandbox/GitHub-Copilot-Chat
 python -m pip install -r requirements.txt
 ```
 
