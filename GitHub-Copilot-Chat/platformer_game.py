@@ -1,4 +1,24 @@
+import os
 import pyxel
+
+AUTO_PLAY = os.path.exists("autoplay.txt")
+current_frame = 0
+
+def auto_control(frame):
+    # 左右移動とジャンプを簡易的にシーケンスで指定
+    wx = 0
+    jump = False
+    if frame < 80:
+        wx = 2
+    elif frame < 140:
+        wx = -2
+    elif frame < 220:
+        wx = 2
+    else:
+        wx = 0
+    if frame in [24, 84, 144, 204]:
+        jump = True
+    return wx, jump
 
 class Player:
     def __init__(self):
@@ -11,24 +31,37 @@ class Player:
         self.wall_right = False
 
     def update(self):
+        global current_frame
         # 入力処理
-        if pyxel.btn(pyxel.KEY_LEFT):
-            self.vx = -2
-        elif pyxel.btn(pyxel.KEY_RIGHT):
-            self.vx = 2
+        if AUTO_PLAY:
+            self.vx, jump = auto_control(current_frame)
+            if jump:
+                if self.on_ground:
+                    self.vy = -5
+                elif self.wall_left:
+                    self.vy = -5
+                    self.vx = 2
+                elif self.wall_right:
+                    self.vy = -5
+                    self.vx = -2
         else:
-            self.vx = 0
+            if pyxel.btn(pyxel.KEY_LEFT):
+                self.vx = -2
+            elif pyxel.btn(pyxel.KEY_RIGHT):
+                self.vx = 2
+            else:
+                self.vx = 0
 
-        # ジャンプと壁ジャンプ
-        if pyxel.btnp(pyxel.KEY_SPACE):
-            if self.on_ground:
-                self.vy = -5
-            elif self.wall_left:
-                self.vy = -5
-                self.vx = 2  # 右にジャンプ
-            elif self.wall_right:
-                self.vy = -5
-                self.vx = -2  # 左にジャンプ
+            # ジャンプと壁ジャンプ
+            if pyxel.btnp(pyxel.KEY_SPACE):
+                if self.on_ground:
+                    self.vy = -5
+                elif self.wall_left:
+                    self.vy = -5
+                    self.vx = 2  # 右にジャンプ
+                elif self.wall_right:
+                    self.vy = -5
+                    self.vx = -2  # 左にジャンプ
 
         # 重力
         self.vy += 0.5
@@ -41,6 +74,9 @@ class Player:
         self.on_ground = False
         self.wall_left = False
         self.wall_right = False
+
+        # フレームカウンタ更新 (自動プレイ用)
+        current_frame += 1
 
 class Platform:
     def __init__(self, x, y, w, h):
