@@ -37,6 +37,19 @@ class TestPlatformInitialization:
         platform = Platform(x=0, y=0, width=50, height=50, platform_type="goal")
         assert platform.platform_type == "goal"
     
+    def test_platform_creation_with_orientation(self):
+        """
+        テスト: プラットフォームの向きが設定できることを確認
+        
+        プラットフォームの向きを "vertical" に設定したとき、
+        正しく設定されることを確認します。
+        """
+        platform = Platform(x=0, y=0, width=50, height=50, orientation="vertical")
+        assert platform.orientation == "vertical"
+        # デフォルトはhorizontal
+        platform_default = Platform(x=0, y=0, width=50, height=50)
+        assert platform_default.orientation == "horizontal"
+    
     def test_get_bounds(self):
         """
         テスト: 当たり判定矩形が正しく取得されることを確認

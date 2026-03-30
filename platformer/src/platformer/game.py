@@ -48,6 +48,10 @@ class Game:
         
         # ゴール判定用のフレームカウンター
         self.frame_count = 0
+
+        # デバッグ用フラグ
+        self.debug_wall_contact = False
+        self.debug_wall_jump = False
         
         # ゲームループの開始
         pyxel.run(self.update, self.draw)
@@ -59,6 +63,10 @@ class Game:
         """
         # フレームカウンター更新
         self.frame_count += 1
+
+        # デバッグフラグを毎フレームリセット
+        self.debug_wall_contact = False
+        self.debug_wall_jump = False
         
         # ゲーム終了条件（ESCキー）
         if pyxel.btnp(pyxel.KEY_ESCAPE):
@@ -67,41 +75,46 @@ class Game:
         # 前フレームの位置を保存
         self.prev_player_x = self.player.x
         self.prev_player_y = self.player.y
-        
-        # 入力処理
-        self._handle_input()
-        
+
+        # 横移動入力のみ処理（ジャンプは衝突判定後に実行）
+        self._handle_horizontal_input()
+
         # プレイヤーを更新（重力など）
         self.player.update()
-        
+
         # 衝突判定と物理応答
         self._handle_collisions()
-        
+
+        # ジャンプ入力を処理（壁接触状態を反映した後に実行）
+        self._handle_jump_input()
+
         # ゴール判定（プラットフォームに乗っているかは関係なく、ゴール領域に到達したらOK）
         if self.current_level.is_reaching_goal(self.player.get_bounds()):
             self._next_stage()
     
-    def _handle_input(self):
+    def _handle_horizontal_input(self):
         """
-        ユーザー入力を処理する
+        横移動入力を処理する
         """
-        # ジャンプ処理を最初に行う（優先度を上げる）
-        # スペースキーが押された場合
-        if pyxel.btnp(pyxel.KEY_SPACE):
-            # 地面にいる場合はジャンプ
-            if self.player.is_on_ground:
-                self.player.jump()
-            # 壁に接しているときは壁ジャンプ
-            elif self.player.is_on_wall:
-                self.player.wall_jump(self.player.wall_direction)
-        
-        # 横移動
         if pyxel.btn(pyxel.KEY_LEFT) or pyxel.btn(pyxel.KEY_A):
             self.player.move_left()
         elif pyxel.btn(pyxel.KEY_RIGHT) or pyxel.btn(pyxel.KEY_D):
             self.player.move_right()
         else:
             self.player.stop_horizontal_movement()
+
+    def _handle_jump_input(self):
+        """
+        ジャンプ入力を処理する
+        """
+        if pyxel.btnp(pyxel.KEY_SPACE):
+            if self.player.is_on_ground:
+                self.player.jump()
+            elif self.player.is_on_wall:
+                if (self.player.wall_direction == -1 and pyxel.btn(pyxel.KEY_LEFT)) or \
+                   (self.player.wall_direction == 1 and pyxel.btn(pyxel.KEY_RIGHT)):
+                    self.player.wall_jump(self.player.wall_direction)
+                    self.debug_wall_jump = True
     
     def _handle_collisions(self):
         """
@@ -133,12 +146,18 @@ class Game:
         # 左の壁が優先される
         if wall_platform_left:
             self.player.set_on_wall(True, wall_direction=-1)
-            # 左の壁右側に配置：壁から右に押し出す
-            self.player.x = wall_platform_left.x + wall_platform_left.width
+            self.debug_wall_contact = True
+            # 左の壁（プレイヤーが右に移動して衝突）に衝突したら、壁の左側に配置
+            self.player.x = wall_platform_left.x - self.player.width
+            # 壁衝突時に横移動を停止
+            self.player.vx = 0
         elif wall_platform_right:
             self.player.set_on_wall(True, wall_direction=1)
-            # 右の壁左側に配置：壁から左に押し出す
-            self.player.x = wall_platform_right.x - self.player.width
+            self.debug_wall_contact = True
+            # 右の壁（プレイヤーが左に移動して衝突）に衝突したら、壁の右側に配置
+            self.player.x = wall_platform_right.x + wall_platform_right.width
+            # 壁衝突時に横移動を停止
+            self.player.vx = 0
         
         # 天井判定
         ceiling_platforms = [p for p in self.current_level.get_platforms()
@@ -200,13 +219,22 @@ class Game:
         """
         for platform in self.current_level.get_platforms():
             if platform.platform_type != "goal":
-                pyxel.rect(
-                    platform.x,
-                    platform.y,
-                    platform.width,
-                    platform.height,
-                    2  # 緑色
-                )
+                if platform.orientation == "horizontal":
+                    pyxel.rect(
+                        platform.x,
+                        platform.y,
+                        platform.width,
+                        platform.height,
+                        2  # 緑色
+                    )
+                elif platform.orientation == "vertical":
+                    pyxel.rect(
+                        platform.x,
+                        platform.y,
+                        platform.width,
+                        platform.height,
+                        3  # 青色（壁を区別）
+                    )
     
     def _draw_goal(self):
         """
@@ -252,6 +280,12 @@ class Game:
             self.player.height,
             8  # 赤色
         )
+
+        # デバッグテキスト表示
+        status_wall = "YES" if self.debug_wall_contact else "NO"
+        status_jump = "YES" if self.debug_wall_jump else "NO"
+        pyxel.text(5, 15, f"Wall: {status_wall}", 7)
+        pyxel.text(5, 25, f"WallJump: {status_jump}", 7)
 
 
 def main():

@@ -78,7 +78,7 @@ class Player:
         通常のジャンプを行う
         地面に接しているときのみジャンプ可能
         """
-        if self.is_on_ground and not self.is_jumping:
+        if self.is_on_ground:
             self.vy = -self.jump_power
             self.is_jumping = True
             self.is_on_ground = False
@@ -95,7 +95,7 @@ class Player:
             self.vy = -self.jump_power
             # 壁に接している場合、反対方向に飛び出す
             self.vx = -wall_direction * self.move_speed
-            self.is_jumping = True
+            # 壁ジャンプでは is_jumping を True にしない（連続壁ジャンプを可能にする）
             self.is_on_wall = False
     
     def set_on_ground(self, on_ground):

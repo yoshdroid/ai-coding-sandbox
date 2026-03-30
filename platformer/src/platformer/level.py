@@ -92,12 +92,31 @@ class Level:
             # 画面の上下の制限内に留まるようにクリップ
             new_y = max(50, min(new_y, self.screen_height - 80))
             
+            # ジャンプで届かない高い位置の場合は縦向きプラットフォームを追加
+            jump_reachable_height = 5.0 * 5.0 / (2 * 0.4)  # ジャンプ力^2 / (2*gravity) ≈ 31.25
+            height_diff = current_y - new_y
+            if height_diff > jump_reachable_height and new_y < current_y:
+                # 高い位置にプラットフォームを置く場合、縦向きの壁を追加して登れるようにする
+                wall_height = int(height_diff + 20)  # 少し余裕を持たせる
+                wall_x = current_x - 10  # 壁を少し左に配置
+                vertical_platform = Platform(
+                    x=wall_x,
+                    y=new_y,
+                    width=12,  # 薄い壁
+                    height=wall_height,
+                    platform_type="normal",
+                    orientation="vertical"
+                )
+                self.platforms.append(vertical_platform)
+            
             # プラットフォームを追加
             platform = Platform(
                 x=current_x,
                 y=new_y,
                 width=width,
-                height=self.platform_height
+                height=self.platform_height,
+                platform_type="normal",
+                orientation="horizontal"
             )
             self.platforms.append(platform)
             

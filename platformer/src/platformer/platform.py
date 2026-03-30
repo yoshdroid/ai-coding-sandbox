@@ -13,9 +13,10 @@ class Platform:
         width (int): プラットフォームの幅
         height (int): プラットフォームの高さ
         platform_type (str): プラットフォームの種類
+        orientation (str): プラットフォームの向き ("horizontal" or "vertical")
     """
     
-    def __init__(self, x, y, width, height, platform_type="normal"):
+    def __init__(self, x, y, width, height, platform_type="normal", orientation="horizontal"):
         """
         プラットフォームを初期化する
         
@@ -27,12 +28,16 @@ class Platform:
             platform_type (str): プラットフォームの種類
                 - "normal": 通常のプラットフォーム
                 - "goal": ゴール
+            orientation (str): プラットフォームの向き
+                - "horizontal": 水平（通常の足場）
+                - "vertical": 垂直（壁）
         """
         self.x = float(x)
         self.y = float(y)
         self.width = width
         self.height = height
         self.platform_type = platform_type
+        self.orientation = orientation
     
     def get_bounds(self):
         """
@@ -82,7 +87,7 @@ class Platform:
         # 上下の衝突判定
         # 前フレームでは上にいて、現フレームでは下に貫通している
         return (prev_y + h2 <= y1 and  # 前フレームで上にいた
-                y2 + h2 > y1 and        # 現フレームで下に來た
+                y2 + h2 >= y1 and       # 現フレームでプラットフォームに接している
                 x2 < x1 + w1 and        # 左右で重なっている
                 x2 + w2 > x1)
     
@@ -128,7 +133,7 @@ class Platform:
         
         # 前フレームでは左にいて、現フレームでは右に貫通している
         return (prev_x + w2 <= x1 and     # 前フレームで左にいた
-                x2 + w2 > x1 and          # 現フレームで右に來た
+                x2 + w2 >= x1 and         # 現フレームで壁に接している
                 y2 < y1 + h1 and          # 上下で重なっている
                 y2 + h2 > y1)
     
@@ -151,6 +156,6 @@ class Platform:
         
         # 前フレームでは右にいて、現フレームでは左に貫通している
         return (prev_x >= x1 + w1 and     # 前フレームで右にいた
-                x2 < x1 + w1 and          # 現フレームで左に來た
+                x2 <= x1 + w1 and         # 現フレームで壁に接している
                 y2 < y1 + h1 and          # 上下で重なっている
                 y2 + h2 > y1)
