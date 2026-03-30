@@ -41,7 +41,9 @@ class Game:
         self.current_level = Level(stage_number=self.stage_number,
                                    screen_width=self.screen_width,
                                    screen_height=self.screen_height)
-        
+
+        self._position_player_at_start()
+
         # 物理演算用の前フレーム位置
         self.prev_player_y = self.player.y
         self.prev_player_x = self.player.x
@@ -183,17 +185,27 @@ class Game:
             screen_width=self.screen_width,
             screen_height=self.screen_height
         )
-        self.player.x = 30
-        self.player.y = self.screen_height - 60
+        self._position_player_at_start()
         self.player.vx = 0
         self.player.vy = 0
+
+    def _position_player_at_start(self):
+        """
+        プレイヤーを開始プラットフォームの上に配置する
+        """
+        start_platform = self.current_level.start_platform
+        if start_platform:
+            self.player.x = start_platform.x + (start_platform.width - self.player.width) / 2
+            self.player.y = start_platform.y - self.player.height
+        else:
+            self.player.x = 30
+            self.player.y = self.screen_height - 60
     
     def _reset_stage(self):
         """
         現在のステージをリセット
         """
-        self.player.x = 30
-        self.player.y = self.screen_height - 60
+        self._position_player_at_start()
         self.player.vx = 0
         self.player.vy = 0
     

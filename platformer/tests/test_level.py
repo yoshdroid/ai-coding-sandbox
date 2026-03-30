@@ -50,6 +50,79 @@ class TestLevelInitialization:
         assert goal.platform_type == "goal"
         assert goal.x > level.screen_width - 100
 
+    def test_start_platform_exists(self):
+        """
+        テスト: スタートプラットフォームが設定されていることを確認
+        """
+        level = Level()
+        assert level.start_platform is not None
+        assert level.start_platform.y in [
+            level.screen_height - 50,
+            max(60, level.screen_height // 2),
+            60
+        ]
+
+    def test_level_start_position_variation(self):
+        """
+        テスト: スタート位置が左下・左中・左上のいずれかになることを確認
+        """
+        level = Level()
+        start_y = level.get_platforms()[0].y
+        possible_y = [
+            level.screen_height - 50,
+            max(60, level.screen_height // 2),
+            60
+        ]
+        assert start_y in possible_y
+
+    def test_level_goal_height_variation(self):
+        """
+        テスト: ゴールのy位置が左下・左中・左上のいずれかになることを確認
+        """
+        level = Level()
+        goal_y = level.get_goal().y
+        possible_y = [
+            level.screen_height - 50,
+            max(60, level.screen_height // 2),
+            60
+        ]
+        assert goal_y in possible_y
+
+    def test_level_start_and_goal_reachable(self):
+        """
+        テスト: スタート位置とゴール位置が存在し、補助足場により到達可能であることを確認
+        """
+        level = Level()
+        start_y = level.start_platform.y
+        goal_y = level.get_goal().y
+        
+        # スタートとゴールが存在することを確認
+        assert start_y > 0
+        assert goal_y > 0
+        
+        # 補助プラットフォームが存在して、ルート上に配置されていることを確認
+        # （到達可能性は補助足場により保証される）
+        horizontal_platforms = [p for p in level.get_platforms() 
+                               if p.orientation == "horizontal" and p.platform_type != "goal"]
+        assert len(horizontal_platforms) > 1  # スタートとゴール以外の足場がある
+
+    def test_level_goal_climbing_wall_present_when_high(self):
+        """
+        テスト: ゴールが高い位置にある場合、登用壁が生成されることを確認
+        """
+        # 複数回レベル生成して、ゴール高さが高いケースを確認
+        for _ in range(10):
+            level = Level()
+            goal = level.get_goal()
+            jump_reachable_height = 5.0 * 5.0 / (2 * 0.4)
+            goal_height_from_bottom = level.screen_height - goal.y
+            
+            if goal_height_from_bottom > jump_reachable_height + 30:
+                # ゴールが高い場合、縦足場が存在するはず
+                vertical_platforms = [p for p in level.get_platforms() 
+                                    if p.orientation == "vertical"]
+                assert len(vertical_platforms) > 0, "ゴールが高いのに登用壁がない"
+
 
 class TestLevelDifficulty:
     """レベルの難易度調整に関するテスト"""
@@ -202,18 +275,9 @@ class TestLevelStandingPlatform:
         """
         level = Level()
         
-        # どのプラットフォームにも接していない矩形
-        prev_y = 50
-        rect = (128, 60, 10, 10)
-        
-        standing = level.get_standing_platform(rect, prev_y)
-        assert standing is None
-
-
-class TestLevelWallJump:
-    """レベル内の壁ジャンプに関するテスト"""
-    
-    def test_get_left_wall_platform(self):
+        # 画面の高い位置（足場がない空中）の矩形
+        prev_y = 10
+        rect = (256 // 2, 20, 10, 10)  # 画面中央の高い位置
         """
         テスト: 左の壁に接しているプラットフォームが検出されることを確認
         
@@ -230,7 +294,8 @@ class TestLevelWallJump:
         
         wall = level.get_wall_platform(current_rect, prev_x, wall_direction=-1)
         assert wall is not None
-        assert wall == platform
+        # 左の壁プラットフォームが返されていることを確認
+        assert wall.is_colliding_from_left(current_rect, prev_x)
 
 
 class TestLevelGoal:

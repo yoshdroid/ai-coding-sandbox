@@ -33,6 +33,7 @@ class Level:
         self.screen_height = screen_height
         self.platforms = []
         self.goal = None
+        self.start_platform = None
         
         # ゲーム難易度調整パラメータ
         self.platform_width_range = (40, 80)
@@ -67,12 +68,21 @@ class Level:
         ランダムなレベルを生成する
         """
         # 最初のプラットフォーム（スタート地点）
+        # 左下、左真ん中、左上のうちからランダムに選択
+        start_positions = [
+            self.screen_height - 50,
+            max(60, self.screen_height // 2),
+            60
+        ]
+        start_y = random.choice(start_positions)
+
         start_platform = Platform(
             x=20,
-            y=self.screen_height - 50,
+            y=start_y,
             width=60,
             height=self.platform_height
         )
+        self.start_platform = start_platform
         self.platforms.append(start_platform)
         
         current_x = start_platform.x + start_platform.width + 30
@@ -125,15 +135,77 @@ class Level:
             current_x += width + gap
             current_y = new_y
         
+        # 最終地点（ゴール）の高さをランダム化（左下・左真ん中・左上に合わせる）
+        goal_candidates = [
+            self.screen_height - 50,
+            max(60, self.screen_height // 2),
+            60
+        ]
+        goal_y = random.choice(goal_candidates)
+        goal_jump_reachable = jump_reachable_height
+
+        # 高すぎる場合は降りるステップを追加
+        while current_y - goal_y > goal_jump_reachable * 1.2:
+            next_y = max(goal_y, current_y - goal_jump_reachable)
+            next_x = current_x + random.randint(self.platform_gap[0], self.platform_gap[1])
+            step_platform = Platform(
+                x=next_x,
+                y=next_y,
+                width=random.randint(self.platform_width_range[0], self.platform_width_range[1]),
+                height=self.platform_height,
+                platform_type="normal",
+                orientation="horizontal"
+            )
+            self.platforms.append(step_platform)
+            current_x = next_x + step_platform.width
+            current_y = next_y
+
+        # 低すぎる場合は上昇用プラットフォームを追加
+        while goal_y - current_y > goal_jump_reachable * 1.2:
+            next_y = min(goal_y, current_y + goal_jump_reachable)
+            next_x = current_x + random.randint(self.platform_gap[0], self.platform_gap[1])
+            step_platform = Platform(
+                x=next_x,
+                y=next_y,
+                width=random.randint(self.platform_width_range[0], self.platform_width_range[1]),
+                height=self.platform_height,
+                platform_type="normal",
+                orientation="horizontal"
+            )
+            self.platforms.append(step_platform)
+            current_x = next_x + step_platform.width
+            current_y = next_y
+
         # ゴールを画面右端に配置
         self.goal = Platform(
             x=self.screen_width - 80,
-            y=self.screen_height - 50,
+            y=goal_y,
             width=60,
             height=self.platform_height,
             platform_type="goal"
         )
         self.platforms.append(self.goal)
+        
+        # ゴールが高い位置にある場合、登用の縦足場を追加
+        goal_height_from_bottom = self.screen_height - goal_y
+        if goal_height_from_bottom > jump_reachable_height + 30:
+            # ゴールまでの距離が大きい場合、ゴール左側に登用壁を配置
+            wall_x = self.screen_width - 150
+            # 壁は現在位置からゴール位置までをカバー
+            wall_top = min(current_y, goal_y)
+            wall_bottom = max(current_y, goal_y) + 30  # 少し下まで延長
+            wall_height = wall_bottom - wall_top
+            
+            if wall_height > 0:
+                climbing_wall = Platform(
+                    x=wall_x,
+                    y=wall_top,
+                    width=12,
+                    height=wall_height,
+                    platform_type="normal",
+                    orientation="vertical"
+                )
+                self.platforms.append(climbing_wall)
     
     def get_platforms(self):
         """
