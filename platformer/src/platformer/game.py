@@ -111,8 +111,11 @@ class Game:
             if self.player.is_on_ground:
                 self.player.jump()
             elif self.player.is_on_wall:
-                if (self.player.wall_direction == -1 and pyxel.btn(pyxel.KEY_LEFT)) or \
-                   (self.player.wall_direction == 1 and pyxel.btn(pyxel.KEY_RIGHT)):
+#                if (self.player.wall_direction == -1 and pyxel.btn(pyxel.KEY_LEFT)) or \
+#                   (self.player.wall_direction == 1 and pyxel.btn(pyxel.KEY_RIGHT)):
+# modify input direction condition for wall jump
+                if (self.player.wall_direction == 1 and pyxel.btn(pyxel.KEY_LEFT)) or \
+                   (self.player.wall_direction == -1 and pyxel.btn(pyxel.KEY_RIGHT)):
                     self.player.wall_jump(self.player.wall_direction)
                     self.debug_wall_jump = True
     
@@ -284,8 +287,11 @@ class Game:
         # デバッグテキスト表示
         status_wall = "YES" if self.debug_wall_contact else "NO"
         status_jump = "YES" if self.debug_wall_jump else "NO"
+        wall_direction = self.player.wall_direction
+        direction_text = "-" if wall_direction == -1 else ("+" if wall_direction == 1 else "0")
         pyxel.text(5, 15, f"Wall: {status_wall}", 7)
         pyxel.text(5, 25, f"WallJump: {status_jump}", 7)
+        pyxel.text(5, 35, f"WallDir: {direction_text}", 7)
 
 
 def main():
