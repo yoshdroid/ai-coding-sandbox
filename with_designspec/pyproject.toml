@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "platformer"
+version = "0.1.0"
+description = "A side-scrolling platformer game using Pyxel"
+authors = [{name = "Your Name"}]
+dependencies = [
+    "pyxel>=1.9.0",
+    "pytest>=7.0.0"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
