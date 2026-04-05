@@ -67,3 +67,16 @@ class TestGame:
         assert game.scene == "game"
         game.next_stage()
         assert game.scene == "ending"
+
+    def test_wall_jump_uses_directional_input_toward_wall(self):
+        # 壁方向の入力とジャンプ入力で壁ジャンプできることを確認する
+        pyxel = DummyPyxel()
+        game = Game(auto_start=False, pyxel_module=pyxel)
+        game.start_stage()
+        game.player.on_ground = False
+        game.player.touch_wall_right = True
+        pyxel._pressed = {pyxel.KEY_RIGHT}
+        pyxel._pressed_once = {pyxel.KEY_SPACE}
+        game.update_game()
+        assert game.player.vx < 0
+        assert game.player.vy < 0

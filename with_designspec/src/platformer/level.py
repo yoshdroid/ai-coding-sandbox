@@ -24,7 +24,7 @@ class Level:
         self._rng = random.Random(stage)
         self.platforms = self.generate_platforms()
         self.start_platform = self.platforms[0]
-        self.goal_platform = self.platforms[-1]
+        self.goal_platform = self._find_goal_platform()
         self.goal_x = self.goal_platform.x + self.goal_platform.width - 12
         self.goal_y = self.goal_platform.y - 12
 
@@ -73,7 +73,56 @@ class Level:
                 width=40,
             )
 
+        platforms.extend(self._generate_vertical_platforms(platforms))
+        platforms.sort(key=lambda platform: (platform.x, platform.y, platform.width, platform.height))
         return platforms
+
+    def _generate_vertical_platforms(self, base_platforms: list[Platform]) -> list[Platform]:
+        verticals: list[Platform] = []
+
+        for index, platform in enumerate(base_platforms[:-1]):
+            next_platform = base_platforms[index + 1]
+            gap_left = platform.x + platform.width
+            gap_right = next_platform.x
+            gap_width = gap_right - gap_left
+            if gap_width < 14:
+                continue
+
+            pillar_width = 8
+            pillar_height = self._rng.randint(24, 40)
+            pillar_x = gap_left + gap_width // 2 - pillar_width // 2
+            pillar_top = max(24, min(platform.y, next_platform.y) - pillar_height + 12)
+            candidate = Platform(
+                x=pillar_x,
+                y=pillar_top,
+                width=pillar_width,
+                height=pillar_height,
+            )
+            if any(self._platforms_overlap(candidate, other) for other in [*base_platforms, *verticals]):
+                continue
+            verticals.append(candidate)
+
+            if len(verticals) >= 2:
+                break
+
+        if not verticals:
+            support = base_platforms[1]
+            verticals.append(
+                Platform(
+                    x=max(60, support.x - 18),
+                    y=max(28, support.y - 32),
+                    width=8,
+                    height=32,
+                )
+            )
+
+        return verticals
+
+    def _find_goal_platform(self) -> Platform:
+        horizontal_platforms = [
+            platform for platform in self.platforms if platform.width >= platform.height
+        ]
+        return max(horizontal_platforms, key=lambda platform: platform.x)
 
     def check_overlap(self) -> bool:
         for index, current in enumerate(self.platforms):
@@ -81,13 +130,6 @@ class Level:
                 if self._platforms_overlap(current, other):
                     return True
         return False
-
-    def find_support(self, player_x: float, player_bottom: float) -> Platform | None:
-        for platform in self.platforms:
-            if platform.x - PLAYER_SIZE < player_x < platform.x + platform.width:
-                if abs(player_bottom - platform.y) <= 2:
-                    return platform
-        return None
 
     def touches_goal(self, player_x: float, player_y: float) -> bool:
         goal_width = 10

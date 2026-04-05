@@ -48,8 +48,9 @@ class Game:
     def draw_title(self) -> None:
         self.pyxel.text(78, 30, "RANDOM PLATFORMER", 7)
         self.pyxel.text(44, 52, "LEFT/RIGHT: MOVE  SPACE: JUMP", 6)
-        self.pyxel.text(58, 68, "R: RESTART  S: SKIP STAGE", 6)
-        self.pyxel.text(62, 92, "PRESS SPACE TO START", 10)
+        self.pyxel.text(34, 68, "PRESS TOWARD WALL + SPACE TO WALL JUMP", 6)
+        self.pyxel.text(58, 84, "R: RESTART  S: SKIP STAGE", 6)
+        self.pyxel.text(62, 104, "PRESS SPACE TO START", 10)
 
     def start_stage(self) -> None:
         self.scene = "game"
@@ -77,15 +78,23 @@ class Game:
         assert self.player is not None
         assert self.level is not None
 
-        if self.pyxel.btn(self.pyxel.KEY_LEFT):
+        left_pressed = self.pyxel.btn(self.pyxel.KEY_LEFT)
+        right_pressed = self.pyxel.btn(self.pyxel.KEY_RIGHT)
+
+        if left_pressed:
             self.player.move_left()
-        elif self.pyxel.btn(self.pyxel.KEY_RIGHT):
+        elif right_pressed:
             self.player.move_right()
         else:
             self.player.stop()
 
         if self.pyxel.btnp(self.pyxel.KEY_SPACE):
-            self.player.jump()
+            if right_pressed and self.player.touch_wall_right and not self.player.on_ground:
+                self.player.wall_jump_left()
+            elif left_pressed and self.player.touch_wall_left and not self.player.on_ground:
+                self.player.wall_jump_right()
+            else:
+                self.player.jump()
 
         if self.pyxel.btnp(self.pyxel.KEY_R):
             self.restart_stage()

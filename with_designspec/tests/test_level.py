@@ -1,4 +1,4 @@
-from src.platformer.level import SCREEN_WIDTH, Level
+from src.platformer.level import PLATFORM_HEIGHT, SCREEN_WIDTH, Level
 
 
 class TestLevel:
@@ -26,3 +26,8 @@ class TestLevel:
         level = Level(7)
         assert 0 <= level.goal_x <= SCREEN_WIDTH - 10
         assert level.goal_y >= 0
+
+    def test_level_generates_vertical_platforms(self):
+        # 縦方向に細長い足場が含まれることを確認する
+        level = Level(2)
+        assert any(platform.height > PLATFORM_HEIGHT for platform in level.platforms)

@@ -45,3 +45,10 @@ class TestPlayer:
         level = Level(1)
         player = Player(32, 130)
         assert player.update(level) == "restart"
+
+    def test_player_wall_jump_changes_velocity(self):
+        # 壁ジャンプで壁から離れる向きに速度が付くことを確認する
+        player = Player(0, 0)
+        player.wall_jump_left()
+        assert player.vx < 0
+        assert player.vy < 0

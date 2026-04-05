@@ -6,6 +6,8 @@ from src.platformer.level import PLAYER_SIZE, SCREEN_HEIGHT, SCREEN_WIDTH, Level
 class Player:
     MOVE_SPEED = 1.8
     JUMP_VELOCITY = -4.6
+    WALL_JUMP_HORIZONTAL_SPEED = 2.8
+    WALL_JUMP_VERTICAL_SPEED = -4.3
     GRAVITY = 0.32
     MAX_FALL_SPEED = 4.8
 
@@ -16,6 +18,8 @@ class Player:
         self.vy = 0.0
         self.on_ground = False
         self.facing_right = True
+        self.touch_wall_left = False
+        self.touch_wall_right = False
 
     def move_right(self) -> None:
         self.vx = self.MOVE_SPEED
@@ -33,7 +37,19 @@ class Player:
             self.vy = self.JUMP_VELOCITY
             self.on_ground = False
 
+    def wall_jump_left(self) -> None:
+        self.vx = -self.WALL_JUMP_HORIZONTAL_SPEED
+        self.vy = self.WALL_JUMP_VERTICAL_SPEED
+        self.on_ground = False
+
+    def wall_jump_right(self) -> None:
+        self.vx = self.WALL_JUMP_HORIZONTAL_SPEED
+        self.vy = self.WALL_JUMP_VERTICAL_SPEED
+        self.on_ground = False
+
     def update(self, level: Level) -> str | None:
+        self.touch_wall_left = False
+        self.touch_wall_right = False
         self.vy = min(self.vy + self.GRAVITY, self.MAX_FALL_SPEED)
         self._move_horizontally(level)
         self._move_vertically(level)
@@ -51,8 +67,10 @@ class Player:
                 continue
             if self.vx > 0:
                 next_x = platform.x - PLAYER_SIZE
+                self.touch_wall_right = True
             elif self.vx < 0:
                 next_x = platform.x + platform.width
+                self.touch_wall_left = True
 
         self.x = next_x
 
