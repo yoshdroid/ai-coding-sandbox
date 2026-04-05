@@ -1,1 +1,1 @@
-# Platformer game package
+"""Random platformer game package."""

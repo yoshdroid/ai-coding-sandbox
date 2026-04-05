@@ -1,75 +1,99 @@
-import pyxel
+from __future__ import annotations
+
+from src.platformer.level import PLAYER_SIZE, SCREEN_HEIGHT, SCREEN_WIDTH, Level, Platform
+
 
 class Player:
-    def __init__(self, x, y):
+    MOVE_SPEED = 1.8
+    JUMP_VELOCITY = -4.6
+    GRAVITY = 0.32
+    MAX_FALL_SPEED = 4.8
+
+    def __init__(self, x: float, y: float) -> None:
         self.x = x
         self.y = y
-        self.vx = 0
-        self.vy = 0
+        self.vx = 0.0
+        self.vy = 0.0
         self.on_ground = False
         self.facing_right = True
 
-    def move_right(self):
-        self.vx = 2
+    def move_right(self) -> None:
+        self.vx = self.MOVE_SPEED
         self.facing_right = True
 
-    def move_left(self):
-        self.vx = -2
+    def move_left(self) -> None:
+        self.vx = -self.MOVE_SPEED
         self.facing_right = False
 
-    def jump(self):
+    def stop(self) -> None:
+        self.vx = 0.0
+
+    def jump(self) -> None:
         if self.on_ground:
-            self.vy = -5
+            self.vy = self.JUMP_VELOCITY
             self.on_ground = False
 
-    def wall_jump_right(self):
-        self.vx = 3
-        self.vy = -5
+    def update(self, level: Level) -> str | None:
+        self.vy = min(self.vy + self.GRAVITY, self.MAX_FALL_SPEED)
+        self._move_horizontally(level)
+        self._move_vertically(level)
 
-    def wall_jump_left(self):
-        self.vx = -3
-        self.vy = -5
-
-    def update(self, level=None):
-        self.x += self.vx
-        self.y += self.vy
-        # 重力
-        self.vy += 0.2
-        # 地面判定（仮）
-        if self.y >= 100:
-            self.y = 100
-            self.vy = 0
-            self.on_ground = True
-        else:
-            self.on_ground = False
-        # 減速
-        self.vx *= 0.8
-
-        # 画面下落下判定
-        if self.y > 128:
-            return "restart"  # リスタートフラグ
-
-        # 衝突判定
-        self.can_wall_jump_left = False
-        self.can_wall_jump_right = False
-        if level:
-            for plat in level.platforms:
-                if (self.x < plat['x'] + plat['width'] and
-                    self.x + 8 > plat['x'] and
-                    self.y < plat['y'] + 5 and
-                    self.y + 8 > plat['y']):
-                    # 衝突時、位置修正
-                    if self.vy > 0:  # 下から
-                        self.y = plat['y'] - 8
-                        self.vy = 0
-                        self.on_ground = True
-                    elif self.vy < 0:  # 上から
-                        self.y = plat['y'] + 5
-                        self.vy = 0
-                    if self.vx > 0:  # 右から
-                        self.x = plat['x'] - 8
-                        self.can_wall_jump_left = True
-                    elif self.vx < 0:  # 左から
-                        self.x = plat['x'] + plat['width']
-                        self.can_wall_jump_right = True
+        if self.y > SCREEN_HEIGHT:
+            return "restart"
         return None
+
+    def _move_horizontally(self, level: Level) -> None:
+        next_x = self.x + self.vx
+        next_x = max(0, min(SCREEN_WIDTH - PLAYER_SIZE, next_x))
+
+        for platform in level.platforms:
+            if not self._intersects_platform(next_x, self.y, platform):
+                continue
+            if self.vx > 0:
+                next_x = platform.x - PLAYER_SIZE
+            elif self.vx < 0:
+                next_x = platform.x + platform.width
+
+        self.x = next_x
+
+    def _move_vertically(self, level: Level) -> None:
+        self.on_ground = False
+        next_y = self.y + self.vy
+
+        for platform in level.platforms:
+            if self.vy >= 0 and self._crossed_platform_top(next_y, platform):
+                next_y = platform.y - PLAYER_SIZE
+                self.vy = 0.0
+                self.on_ground = True
+                break
+            if self.vy < 0 and self._crossed_platform_bottom(next_y, platform):
+                next_y = platform.y + platform.height
+                self.vy = 0.0
+                break
+
+        self.y = next_y
+
+    def _crossed_platform_top(self, next_y: float, platform: Platform) -> bool:
+        return (
+            self.x + PLAYER_SIZE > platform.x
+            and self.x < platform.x + platform.width
+            and self.y + PLAYER_SIZE <= platform.y
+            and next_y + PLAYER_SIZE >= platform.y
+        )
+
+    def _crossed_platform_bottom(self, next_y: float, platform: Platform) -> bool:
+        return (
+            self.x + PLAYER_SIZE > platform.x
+            and self.x < platform.x + platform.width
+            and self.y >= platform.y + platform.height
+            and next_y <= platform.y + platform.height
+        )
+
+    @staticmethod
+    def _intersects_platform(x: float, y: float, platform: Platform) -> bool:
+        return (
+            x < platform.x + platform.width
+            and x + PLAYER_SIZE > platform.x
+            and y < platform.y + platform.height
+            and y + PLAYER_SIZE > platform.y
+        )

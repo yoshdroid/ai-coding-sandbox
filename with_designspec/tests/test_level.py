@@ -1,24 +1,28 @@
-import pytest
-from src.platformer.level import Level
+from src.platformer.level import SCREEN_WIDTH, Level
+
 
 class TestLevel:
     def test_level_initialization(self):
-        # レベルの初期化テスト
+        # ステージ番号とゴール位置が初期化されることを確認する
         level = Level(1)
         assert level.stage == 1
-        assert len(level.platforms) > 0
-        assert level.goal_x > 0
+        assert len(level.platforms) >= 4
+        assert 0 <= level.goal_x <= SCREEN_WIDTH - 10
 
-    def test_level_random_generation(self):
-        # ランダム生成テスト
-        level1 = Level(1)
-        level2 = Level(1)
-        # 同じシードでもランダムだが、テストでは異なることを確認
-        # 実際にはシード固定でテスト
-        pass  # 仮
+    def test_level_random_generation_is_deterministic_per_stage(self):
+        # 同じステージ番号なら同じ地形が生成されることを確認する
+        level1 = Level(3)
+        level2 = Level(3)
+        assert level1.platforms == level2.platforms
+        assert level1.goal_x == level2.goal_x
 
-    def test_level_collision(self):
-        # 衝突判定テスト
-        level = Level(1)
-        # プレイヤーがプラットフォームに衝突するかテスト
-        pass
+    def test_level_platforms_do_not_overlap(self):
+        # 足場同士が重ならないことを確認する
+        level = Level(5)
+        assert level.check_overlap() is False
+
+    def test_level_goal_is_on_screen(self):
+        # ゴールが画面内に収まることを確認する
+        level = Level(7)
+        assert 0 <= level.goal_x <= SCREEN_WIDTH - 10
+        assert level.goal_y >= 0

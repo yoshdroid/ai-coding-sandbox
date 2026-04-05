@@ -1,17 +1,29 @@
+from __future__ import annotations
+
 import pyxel
+
+from src.platformer.level import PLAYER_SIZE, SCREEN_HEIGHT, SCREEN_WIDTH, Level
 from src.platformer.player import Player
-from src.platformer.level import Level
+
 
 class Game:
-    def __init__(self):
-        pyxel.init(256, 128, title="Platformer")
-        self.scene = "title"  # title, game, ending
-        self.stage = 1
-        self.player = None
-        self.level = None
-        pyxel.run(self.update, self.draw)
+    MAX_STAGE = 10
 
-    def update(self):
+    def __init__(self, auto_start: bool = True, pyxel_module=pyxel) -> None:
+        self.pyxel = pyxel_module
+        self.scene = "title"
+        self.stage = 1
+        self.player: Player | None = None
+        self.level: Level | None = None
+
+        if auto_start:
+            self.run()
+
+    def run(self) -> None:
+        self.pyxel.init(SCREEN_WIDTH, SCREEN_HEIGHT, title="Random Platformer")
+        self.pyxel.run(self.update, self.draw)
+
+    def update(self) -> None:
         if self.scene == "title":
             self.update_title()
         elif self.scene == "game":
@@ -19,8 +31,8 @@ class Game:
         elif self.scene == "ending":
             self.update_ending()
 
-    def draw(self):
-        pyxel.cls(0)
+    def draw(self) -> None:
+        self.pyxel.cls(0)
         if self.scene == "title":
             self.draw_title()
         elif self.scene == "game":
@@ -28,81 +40,88 @@ class Game:
         elif self.scene == "ending":
             self.draw_ending()
 
-    def update_title(self):
-        if pyxel.btnp(pyxel.KEY_SPACE):
-            self.start_game()
+    def update_title(self) -> None:
+        if self.pyxel.btnp(self.pyxel.KEY_SPACE):
+            self.stage = 1
+            self.start_stage()
 
-    def draw_title(self):
-        pyxel.text(80, 50, "PLATFORMER", 7)
-        pyxel.text(70, 70, "Press SPACE to start", 7)
+    def draw_title(self) -> None:
+        self.pyxel.text(78, 30, "RANDOM PLATFORMER", 7)
+        self.pyxel.text(44, 52, "LEFT/RIGHT: MOVE  SPACE: JUMP", 6)
+        self.pyxel.text(58, 68, "R: RESTART  S: SKIP STAGE", 6)
+        self.pyxel.text(62, 92, "PRESS SPACE TO START", 10)
 
-    def start_game(self):
+    def start_stage(self) -> None:
         self.scene = "game"
-        self.player = Player(10, 100)
         self.level = Level(self.stage)
+        self.player = Player(
+            self.level.start_platform.x + 8,
+            self.level.start_platform.y - PLAYER_SIZE,
+        )
+        self.player.on_ground = True
 
-    def update_game(self):
-        # 入力処理
-        if pyxel.btn(pyxel.KEY_LEFT):
+    def restart_stage(self) -> None:
+        self.start_stage()
+
+    def next_stage(self) -> None:
+        if self.stage >= self.MAX_STAGE:
+            self.scene = "ending"
+            self.player = None
+            self.level = None
+            return
+
+        self.stage += 1
+        self.start_stage()
+
+    def update_game(self) -> None:
+        assert self.player is not None
+        assert self.level is not None
+
+        if self.pyxel.btn(self.pyxel.KEY_LEFT):
             self.player.move_left()
-        elif pyxel.btn(pyxel.KEY_RIGHT):
+        elif self.pyxel.btn(self.pyxel.KEY_RIGHT):
             self.player.move_right()
         else:
-            self.player.vx = 0
+            self.player.stop()
 
-        if pyxel.btnp(pyxel.KEY_SPACE):
-            if self.player.can_wall_jump_left:
-                self.player.wall_jump_left()
-            elif self.player.can_wall_jump_right:
-                self.player.wall_jump_right()
-            else:
-                self.player.jump()
+        if self.pyxel.btnp(self.pyxel.KEY_SPACE):
+            self.player.jump()
 
-        if pyxel.btnp(pyxel.KEY_R):
+        if self.pyxel.btnp(self.pyxel.KEY_R):
             self.restart_stage()
-        if pyxel.btnp(pyxel.KEY_S):
-            self.next_stage()
+            return
 
-        # 更新
+        if self.pyxel.btnp(self.pyxel.KEY_S):
+            self.next_stage()
+            return
+
         result = self.player.update(self.level)
         if result == "restart":
             self.restart_stage()
+            return
 
-        # 衝突判定
-        if self.level.check_collision(self.player):
-            # 壁ジャンプなど
-            pass
+        if self.level.touches_goal(self.player.x, self.player.y):
+            self.next_stage()
 
-        # クリア判定
-        if self.player.x >= self.level.goal_x:
-            self.stage += 1
-            if self.stage > 10:
-                self.scene = "ending"
-            else:
-                self.next_stage()
+    def draw_game(self) -> None:
+        assert self.player is not None
+        assert self.level is not None
 
-    def draw_game(self):
-        # プレイヤー描画
-        pyxel.rect(self.player.x, self.player.y, 8, 8, 11)
-        # プラットフォーム描画
-        for plat in self.level.platforms:
-            pyxel.rect(plat['x'], plat['y'], plat['width'], 5, 3)
-        # ゴール描画
-        pyxel.rect(self.level.goal_x, 100, 10, 10, 8)
+        self.pyxel.cls(1)
+        for platform in self.level.platforms:
+            self.pyxel.rect(platform.x, platform.y, platform.width, platform.height, 3)
 
-    def restart_stage(self):
-        self.player = Player(10, 100)
-        self.level = Level(self.stage)
+        self.pyxel.rect(self.level.goal_x, self.level.goal_y, 10, 12, 11)
+        self.pyxel.rect(int(self.player.x), int(self.player.y), PLAYER_SIZE, PLAYER_SIZE, 10)
+        self.pyxel.text(6, 6, f"STAGE {self.stage}/{self.MAX_STAGE}", 7)
+        self.pyxel.text(6, 16, "R:RESTART S:SKIP", 7)
 
-    def next_stage(self):
-        self.stage += 1
-        self.restart_stage()
-
-    def update_ending(self):
-        if pyxel.btnp(pyxel.KEY_SPACE):
+    def update_ending(self) -> None:
+        if self.pyxel.btnp(self.pyxel.KEY_SPACE):
             self.scene = "title"
             self.stage = 1
 
-    def draw_ending(self):
-        pyxel.text(80, 50, "CONGRATULATIONS!", 7)
-        pyxel.text(70, 70, "Press SPACE to restart", 7)
+    def draw_ending(self) -> None:
+        self.pyxel.text(84, 44, "ENDING", 7)
+        self.pyxel.text(42, 64, "YOU CLEARED ALL 10 STAGES!", 10)
+        self.pyxel.text(58, 88, "PRESS SPACE FOR TITLE", 6)
